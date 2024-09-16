@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Downloader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        input[type="file"], input[type="text"], select {
+            padding: 10px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #progress {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="container">
+        <h1>Image Downloader</h1>
+        
+        <!-- Upload Excel File -->
+        <form id="uploadForm" enctype="multipart/form-data">
+            <label for="fileInput">Upload Excel File:</label>
+            <input type="file" id="fileInput" name="file" accept=".xls,.xlsx">
+            <button type="submit">Upload</button>
+        </form>
+
+        <!-- Show Dropdown to Select Sheet -->
+        <div id="sheetSelector" style="display: none;">
+            <label for="sheetDropdown">Select Sheet:</label>
+            <select id="sheetDropdown"></select>
+            <br><br>
+
+            <div id="manualColumnInput" style="display: none;">
+                <label for="columnInput">No image column found. Enter column name manually:</label>
+                <input type="text" id="columnInput" placeholder="Column name">
+            </div>
+
+            <br>
+            <button id="downloadBtn">Download Images</button>
+        </div>
+
+        <div id="progress"></div>
+    </div>
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const sheetSelector = document.getElementById('sheetSelector');
+        const sheetDropdown = document.getElementById('sheetDropdown');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const progressDiv = document.getElementById('progress');
+        const manualColumnInput = document.getElementById('manualColumnInput');
+        const columnInput = document.getElementById('columnInput');
+
+        let fileName;
+
+        uploadForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const formData = new FormData(uploadForm);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    fileName = data.file;
+                    // Populate the dropdown with sheet names
+                    sheetDropdown.innerHTML = '';
+                    data.sheets.forEach(sheet => {
+                        const option = document.createElement('option');
+                        option.value = sheet;
+                        option.textContent = sheet;
+                        sheetDropdown.appendChild(option);
+                    });
+                    sheetSelector.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            const selectedSheet = sheetDropdown.value;
+            const userColumn = columnInput.value.trim();
+
+            fetch('/download', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    file_name: fileName,
+                    sheet_name: selectedSheet,
+                    user_column: userColumn || null
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    if (data.ask_column) {
+                        manualColumnInput.style.display = 'block';
+                    } else {
+                        alert(data.error);
+                    }
+                } else {
+                    manualColumnInput.style.display = 'none';
+                    alert('Download started. Check progress below.');
+                    progressDiv.textContent = 'Download in progress...';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    </script>
+
+</body>
+</html>
