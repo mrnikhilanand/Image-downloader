@@ -109,5 +109,5 @@ def download_images_from_tab():
 
     return jsonify({'message': 'Download started', 'folder_name': folder_name})
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
